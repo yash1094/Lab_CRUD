@@ -11,21 +11,9 @@ const VueGoogleMaps = require("vue2-google-maps");
 
 Vue.use(VueGoogleMaps, {
     load: {
-        key: "AIzaSyD8rf-y6eW3Uq4Ja3JY-ekkWKYga8OyhF0",
-        libraries: "places" // This is required if you use the Autocomplete plugin
+        key: process.env.MIX_MAPS_KEY,
+        libraries: ["places", "geocoder"] // This is required if you use the Autocomplete plugin
     },
-
-    //// If you intend to programmatically custom event listener code
-    //// (e.g. `this.$refs.gmap.$on('zoom_changed', someFunc)`)
-    //// instead of going through Vue templates (e.g. `<GmapMap @zoom_changed="someFunc">`)
-    //// you might need to turn this on.
-    // autobindAllEvents: false,
-
-    //// If you want to manually install components, e.g.
-    //// import {GmapMarker} from 'vue2-google-maps/src/components/marker'
-    //// Vue.component('GmapMarker', GmapMarker)
-    //// then set installComponents to 'false'.
-    //// If you want to automatically install all the components this property must be set to 'true':
     installComponents: true
 });
 
@@ -40,7 +28,7 @@ Vue.use(VueGoogleMaps, {
  */
 
 // Vue.component("navbar", require("./components/NavBar.vue").default);
-const lab = Vue.component("labs", require("./components/Labs2.vue").default);
+const lab = Vue.component("labs", require("./components/Labs.vue").default);
 const map = Vue.component("maps", require("./components/Maps.vue").default);
 
 /**

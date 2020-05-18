@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Lab;
 use App\Http\Resources\Lab as LabResource;
+use Illuminate\Support\Facades\Auth;
 
 class LabController extends Controller
 {
@@ -60,10 +61,14 @@ class LabController extends Controller
      */
     public function show($id)
     {
-        // Get a single lab
-        $lab = Lab::findOrFail($id);
+        if (Auth::check()) {
+            $lab = Lab::findOrFail($id);
 
-        return new LabResource($lab);
+            return new LabResource($lab);
+        } else {
+            return redirect('login');
+        }
+        // Get a single lab
     }
 
     // /**

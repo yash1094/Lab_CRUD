@@ -38,7 +38,7 @@
                         <a class="nav-link" href="{{ url('/map') }}">maps</a>
                     </ul>
                     <ul class="navbar-nav mr-auto">
-                        <a class="nav-link" href="{{ url('/labs') }}">labs</a>
+                        <a class="nav-link" href="{{ url('/home') }}">labs</a>
                     </ul>
                     <ul class="navbar-nav ">
 

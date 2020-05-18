@@ -15,24 +15,16 @@ use Illuminate\Support\Facades\Auth;
 */
 
 Route::get('/', function () {
-    if (Auth::check()) {
-        return view('welcome');
-    }
-    return redirect()->route('login');
+    return view('welcome');
 
     // return view('home');
 });
 
 Route::get('/map', function () {
-    if (Auth::check()) {
-        return view('map');
-    }
-    return redirect()->route('login');
-
-    // return view('home');
-});
+    return view('map');
+})->middleware('auth');
 
 
 Auth::routes();
 
-Route::get('/labs', 'HomeController@index')->name('home');
+Route::get('/home', 'HomeController@index')->name('home');

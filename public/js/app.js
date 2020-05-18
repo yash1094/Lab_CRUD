@@ -1899,15 +1899,49 @@ module.exports = {
 
 /***/ }),
 
-/***/ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/components/Labs2.vue?vue&type=script&lang=js&":
-/*!****************************************************************************************************************************************************************!*\
-  !*** ./node_modules/babel-loader/lib??ref--4-0!./node_modules/vue-loader/lib??vue-loader-options!./resources/js/components/Labs2.vue?vue&type=script&lang=js& ***!
-  \****************************************************************************************************************************************************************/
+/***/ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/components/Labs.vue?vue&type=script&lang=js&":
+/*!***************************************************************************************************************************************************************!*\
+  !*** ./node_modules/babel-loader/lib??ref--4-0!./node_modules/vue-loader/lib??vue-loader-options!./resources/js/components/Labs.vue?vue&type=script&lang=js& ***!
+  \***************************************************************************************************************************************************************/
 /*! exports provided: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 //
 //
 //
@@ -1957,10 +1991,11 @@ __webpack_require__.r(__webpack_exports__);
       lab: {
         id: "",
         name: "",
-        lat: "",
-        "long": "",
+        addr: "",
         created_at: ""
       },
+      lat: "",
+      "long": "",
       lab_id: "",
       pagination: {},
       edit: false
@@ -1968,6 +2003,11 @@ __webpack_require__.r(__webpack_exports__);
   },
   created: function created() {
     this.fetchLabs();
+  },
+  mounted: function mounted() {
+    var ckeditor = document.createElement("script");
+    ckeditor.setAttribute("src", "https://maps.googleapis.com/maps/api/js?key=".concat("AIzaSyABzcla-d9d0mQ7uJdZFrN0qn-d23e782E", "&callback=initMap"));
+    document.head.appendChild(ckeditor);
   },
   methods: {
     // receives a place object via the autocomplete component
@@ -1979,13 +2019,31 @@ __webpack_require__.r(__webpack_exports__);
 
       var vm = this;
       page_url = page_url || "/api/labs";
-      fetch("/api/labs").then(function (res) {
+      fetch(page_url).then(function (res) {
         return res.json();
       }).then(function (res) {
-        _this.labs = res.data;
-        console.log(res.data);
-        console.log(page_url);
+        var data = res.data;
+        var geocoder = new google.maps.Geocoder();
+        data.forEach(function (lab) {
+          var latlng = {
+            lat: parseFloat(lab.lat),
+            lng: parseFloat(lab["long"])
+          };
+          geocoder.geocode({
+            location: latlng
+          }, function (results, status) {
+            if (status === "OK") {
+              lab.addr = results[0].formatted_address;
+            } else {
+              window.alert("Geocoder failed due to: " + status);
+            }
+          });
+        });
         vm.makePagination(res.meta, res.links);
+        _this.labs = data;
+        console.log(_this.labs);
+
+        _this.$forceUpdate();
       })["catch"](function (err) {
         return console.log(err);
       });
@@ -2019,31 +2077,37 @@ __webpack_require__.r(__webpack_exports__);
     addLab: function addLab() {
       var _this3 = this;
 
-      if (this.edit === false) {
-        //add
-        this.lab.location = Object.values(this.input).reduce(function (acc, curr) {
-          return acc + " " + curr;
-        });
-        console.log(JSON.stringify(this.lab));
-        fetch("api/lab", {
-          method: "post",
-          body: JSON.stringify(this.lab),
-          headers: {
-            "content-type": "application/json"
-          }
-        }).then(function (res) {
-          return res.json();
-        }).then(function (data) {
-          _this3.lab.name = "";
-          Object.keys(_this3.input).forEach(function (el) {
-            return _this3.input[el] = "";
-          });
+      if (this.currentPlace != null) {
+        if (this.edit === false) {
+          //add
+          this.lat = this.currentPlace.geometry.location.lat();
+          this["long"] = this.currentPlace.geometry.location.lng();
+          this.lab.addr = this.currentPlace.formatted_address;
+          console.log(JSON.stringify(this.lab));
+          delete this.lab.addr;
+          this.lab.lat = this.lat;
+          this.lab["long"] = this["long"];
+          console.log(JSON.stringify(this.lab));
+          fetch("api/lab", {
+            method: "post",
+            body: JSON.stringify(this.lab),
+            headers: {
+              "content-type": "application/json"
+            }
+          }).then(function (res) {
+            return res.json();
+          }).then(function (data) {
+            _this3.lab.name = "";
+            _this3.currentPlace = "";
 
-          _this3.fetchLabs();
-        })["catch"](function (err) {
-          return console.log(err);
-        });
-      } else {//edit
+            _this3.fetchLabs();
+          })["catch"](function (err) {
+            return console.log(err);
+          });
+        } else {//edit
+        }
+      } else {
+        alert("must provide a valid address");
       }
     },
     editLab: function editLab(lab) {
@@ -2086,10 +2150,6 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
-//
-//
-//
-//
 /* harmony default export */ __webpack_exports__["default"] = ({
   name: "GoogleMap",
   data: function data() {
@@ -2101,41 +2161,58 @@ __webpack_require__.r(__webpack_exports__);
       },
       markers: [],
       places: [],
-      currentPlace: null
+      currentPlace: null,
+      labs: []
     };
   },
-  mounted: function mounted() {
-    this.geolocate();
+  created: function created() {
+    this.fetchLabs();
   },
+  // mounted() {
+  //   this.geolocate();
+  // },
   methods: {
     // receives a place object via the autocomplete component
     setPlace: function setPlace(place) {
       this.currentPlace = place;
     },
-    addMarker: function addMarker() {
-      if (this.currentPlace) {
-        var marker = {
-          lat: this.currentPlace.geometry.location.lat(),
-          lng: this.currentPlace.geometry.location.lng()
-        };
-        this.markers.push({
-          position: marker
-        });
-        this.places.push(this.currentPlace);
-        this.center = marker;
-        this.currentPlace = null;
-      }
-    },
-    geolocate: function geolocate() {
+    fetchLabs: function fetchLabs(page_url) {
       var _this = this;
 
-      navigator.geolocation.getCurrentPosition(function (position) {
-        _this.center = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        };
+      fetch("api/labs").then(function (res) {
+        return res.json();
+      }).then(function (res) {
+        _this.labs = res.data;
+
+        _this.labs.forEach(function (el) {
+          if (el.lat != "" || el.lng != "") _this.addMarker(el.lat, el["long"]);
+        });
+      })["catch"](function (err) {
+        return console.log(err);
       });
-    }
+    },
+    addMarker: function addMarker(lat, lng) {
+      lat = parseFloat(lat);
+      lng = parseFloat(lng);
+      var marker = {
+        lat: lat,
+        lng: lng
+      };
+      console.log(marker);
+      this.markers.push({
+        position: marker
+      });
+      this.places.push(this.currentPlace);
+      this.center = marker;
+    } // geolocate: function() {
+    //   navigator.geolocation.getCurrentPosition(position => {
+    //     this.center = {
+    //       lat: position.coords.latitude,
+    //       lng: position.coords.longitude
+    //     };
+    //   });
+    // }
+
   }
 });
 
@@ -38714,10 +38791,10 @@ render._withStripped = true
 
 /***/ }),
 
-/***/ "./node_modules/vue-loader/lib/loaders/templateLoader.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/components/Labs2.vue?vue&type=template&id=7a6039de&":
-/*!********************************************************************************************************************************************************************************************************!*\
-  !*** ./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/vue-loader/lib??vue-loader-options!./resources/js/components/Labs2.vue?vue&type=template&id=7a6039de& ***!
-  \********************************************************************************************************************************************************************************************************/
+/***/ "./node_modules/vue-loader/lib/loaders/templateLoader.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/components/Labs.vue?vue&type=template&id=2f925471&":
+/*!*******************************************************************************************************************************************************************************************************!*\
+  !*** ./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/vue-loader/lib??vue-loader-options!./resources/js/components/Labs.vue?vue&type=template&id=2f925471& ***!
+  \*******************************************************************************************************************************************************************************************************/
 /*! exports provided: render, staticRenderFns */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
@@ -38822,10 +38899,11 @@ var render = function() {
               { staticClass: "page-link text-dark", attrs: { href: "#" } },
               [
                 _vm._v(
-                  "Page " +
+                  "\n                    Page " +
                     _vm._s(_vm.pagination.curr_page) +
-                    " of " +
-                    _vm._s(_vm.pagination.last_page)
+                    " of\n                    " +
+                    _vm._s(_vm.pagination.last_page) +
+                    "\n                "
                 )
               ]
             )
@@ -38860,36 +38938,45 @@ var render = function() {
         return _c("div", { key: lab.id, staticClass: "card card-body mb-2" }, [
           _c("h3", [_vm._v(_vm._s(lab.name))]),
           _vm._v(" "),
-          _c("h5", [_vm._v(_vm._s("(" + lab.lat + "," + lab.long + ")"))]),
+          _c("h5", [_vm._v(_vm._s("address: " + lab.addr))]),
           _vm._v(" "),
           _c("h5", [_vm._v(_vm._s(lab.created_at))]),
           _vm._v(" "),
           _c("hr"),
           _vm._v(" "),
           _c(
-            "button",
+            "div",
             {
-              staticClass: "btn btn-warning",
-              on: {
-                click: function($event) {
-                  return _vm.editLab(lab)
-                }
-              }
+              staticClass: "btn-group",
+              attrs: { role: "group", "aria-label": "Basic example" }
             },
-            [_vm._v("Edit")]
-          ),
-          _vm._v(" "),
-          _c(
-            "button",
-            {
-              staticClass: "btn btn-danger",
-              on: {
-                click: function($event) {
-                  return _vm.deleteLab(lab.id)
-                }
-              }
-            },
-            [_vm._v("Delete")]
+            [
+              _c(
+                "button",
+                {
+                  staticClass: "btn btn-warning",
+                  on: {
+                    click: function($event) {
+                      return _vm.editLab(lab)
+                    }
+                  }
+                },
+                [_vm._v("\n                Edit\n            ")]
+              ),
+              _vm._v(" "),
+              _c(
+                "button",
+                {
+                  staticClass: "btn btn-danger",
+                  on: {
+                    click: function($event) {
+                      return _vm.deleteLab(lab.id)
+                    }
+                  }
+                },
+                [_vm._v("\n                Delete\n            ")]
+              )
+            ]
           )
         ])
       })
@@ -38921,24 +39008,9 @@ var render = function() {
   var _c = _vm._self._c || _h
   return _c(
     "div",
+    { staticClass: "container" },
     [
-      _c("div", [
-        _c("h2", [_vm._v("Search and add a pin")]),
-        _vm._v(" "),
-        _c(
-          "label",
-          [
-            _c("gmap-autocomplete", { on: { place_changed: _vm.setPlace } }),
-            _vm._v(" "),
-            _c("button", { on: { click: _vm.addMarker } }, [_vm._v("Add")])
-          ],
-          1
-        ),
-        _vm._v(" "),
-        _c("br")
-      ]),
-      _vm._v(" "),
-      _c("br"),
+      _c("h2", [_vm._v("Lab Locations")]),
       _vm._v(" "),
       _c(
         "gmap-map",
@@ -53686,20 +53758,10 @@ var VueGoogleMaps = __webpack_require__(/*! vue2-google-maps */ "./node_modules/
 
 Vue.use(VueGoogleMaps, {
   load: {
-    key: "AIzaSyD8rf-y6eW3Uq4Ja3JY-ekkWKYga8OyhF0",
-    libraries: "places" // This is required if you use the Autocomplete plugin
+    key: "AIzaSyABzcla-d9d0mQ7uJdZFrN0qn-d23e782E",
+    libraries: ["places", "geocoder"] // This is required if you use the Autocomplete plugin
 
   },
-  //// If you intend to programmatically custom event listener code
-  //// (e.g. `this.$refs.gmap.$on('zoom_changed', someFunc)`)
-  //// instead of going through Vue templates (e.g. `<GmapMap @zoom_changed="someFunc">`)
-  //// you might need to turn this on.
-  // autobindAllEvents: false,
-  //// If you want to manually install components, e.g.
-  //// import {GmapMarker} from 'vue2-google-maps/src/components/marker'
-  //// Vue.component('GmapMarker', GmapMarker)
-  //// then set installComponents to 'false'.
-  //// If you want to automatically install all the components this property must be set to 'true':
   installComponents: true
 }); // Vue.use(VueRouter);
 
@@ -53712,7 +53774,7 @@ Vue.use(VueGoogleMaps, {
  */
 // Vue.component("navbar", require("./components/NavBar.vue").default);
 
-var lab = Vue.component("labs", __webpack_require__(/*! ./components/Labs2.vue */ "./resources/js/components/Labs2.vue")["default"]);
+var lab = Vue.component("labs", __webpack_require__(/*! ./components/Labs.vue */ "./resources/js/components/Labs.vue")["default"]);
 var map = Vue.component("maps", __webpack_require__(/*! ./components/Maps.vue */ "./resources/js/components/Maps.vue")["default"]);
 /**
  * Next, we will create a fresh Vue application instance and attach it to
@@ -53771,17 +53833,17 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 /***/ }),
 
-/***/ "./resources/js/components/Labs2.vue":
-/*!*******************************************!*\
-  !*** ./resources/js/components/Labs2.vue ***!
-  \*******************************************/
+/***/ "./resources/js/components/Labs.vue":
+/*!******************************************!*\
+  !*** ./resources/js/components/Labs.vue ***!
+  \******************************************/
 /*! exports provided: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _Labs2_vue_vue_type_template_id_7a6039de___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./Labs2.vue?vue&type=template&id=7a6039de& */ "./resources/js/components/Labs2.vue?vue&type=template&id=7a6039de&");
-/* harmony import */ var _Labs2_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./Labs2.vue?vue&type=script&lang=js& */ "./resources/js/components/Labs2.vue?vue&type=script&lang=js&");
+/* harmony import */ var _Labs_vue_vue_type_template_id_2f925471___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./Labs.vue?vue&type=template&id=2f925471& */ "./resources/js/components/Labs.vue?vue&type=template&id=2f925471&");
+/* harmony import */ var _Labs_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./Labs.vue?vue&type=script&lang=js& */ "./resources/js/components/Labs.vue?vue&type=script&lang=js&");
 /* empty/unused harmony star reexport *//* harmony import */ var _node_modules_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../node_modules/vue-loader/lib/runtime/componentNormalizer.js */ "./node_modules/vue-loader/lib/runtime/componentNormalizer.js");
 
 
@@ -53791,9 +53853,9 @@ __webpack_require__.r(__webpack_exports__);
 /* normalize component */
 
 var component = Object(_node_modules_vue_loader_lib_runtime_componentNormalizer_js__WEBPACK_IMPORTED_MODULE_2__["default"])(
-  _Labs2_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__["default"],
-  _Labs2_vue_vue_type_template_id_7a6039de___WEBPACK_IMPORTED_MODULE_0__["render"],
-  _Labs2_vue_vue_type_template_id_7a6039de___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"],
+  _Labs_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_1__["default"],
+  _Labs_vue_vue_type_template_id_2f925471___WEBPACK_IMPORTED_MODULE_0__["render"],
+  _Labs_vue_vue_type_template_id_2f925471___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"],
   false,
   null,
   null,
@@ -53803,38 +53865,38 @@ var component = Object(_node_modules_vue_loader_lib_runtime_componentNormalizer_
 
 /* hot reload */
 if (false) { var api; }
-component.options.__file = "resources/js/components/Labs2.vue"
+component.options.__file = "resources/js/components/Labs.vue"
 /* harmony default export */ __webpack_exports__["default"] = (component.exports);
 
 /***/ }),
 
-/***/ "./resources/js/components/Labs2.vue?vue&type=script&lang=js&":
-/*!********************************************************************!*\
-  !*** ./resources/js/components/Labs2.vue?vue&type=script&lang=js& ***!
-  \********************************************************************/
+/***/ "./resources/js/components/Labs.vue?vue&type=script&lang=js&":
+/*!*******************************************************************!*\
+  !*** ./resources/js/components/Labs.vue?vue&type=script&lang=js& ***!
+  \*******************************************************************/
 /*! exports provided: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _node_modules_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_lib_index_js_vue_loader_options_Labs2_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../../../node_modules/babel-loader/lib??ref--4-0!../../../node_modules/vue-loader/lib??vue-loader-options!./Labs2.vue?vue&type=script&lang=js& */ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/components/Labs2.vue?vue&type=script&lang=js&");
-/* empty/unused harmony star reexport */ /* harmony default export */ __webpack_exports__["default"] = (_node_modules_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_lib_index_js_vue_loader_options_Labs2_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__["default"]); 
+/* harmony import */ var _node_modules_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_lib_index_js_vue_loader_options_Labs_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../../../node_modules/babel-loader/lib??ref--4-0!../../../node_modules/vue-loader/lib??vue-loader-options!./Labs.vue?vue&type=script&lang=js& */ "./node_modules/babel-loader/lib/index.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/components/Labs.vue?vue&type=script&lang=js&");
+/* empty/unused harmony star reexport */ /* harmony default export */ __webpack_exports__["default"] = (_node_modules_babel_loader_lib_index_js_ref_4_0_node_modules_vue_loader_lib_index_js_vue_loader_options_Labs_vue_vue_type_script_lang_js___WEBPACK_IMPORTED_MODULE_0__["default"]); 
 
 /***/ }),
 
-/***/ "./resources/js/components/Labs2.vue?vue&type=template&id=7a6039de&":
-/*!**************************************************************************!*\
-  !*** ./resources/js/components/Labs2.vue?vue&type=template&id=7a6039de& ***!
-  \**************************************************************************/
+/***/ "./resources/js/components/Labs.vue?vue&type=template&id=2f925471&":
+/*!*************************************************************************!*\
+  !*** ./resources/js/components/Labs.vue?vue&type=template&id=2f925471& ***!
+  \*************************************************************************/
 /*! exports provided: render, staticRenderFns */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_Labs2_vue_vue_type_template_id_7a6039de___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../../../node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!../../../node_modules/vue-loader/lib??vue-loader-options!./Labs2.vue?vue&type=template&id=7a6039de& */ "./node_modules/vue-loader/lib/loaders/templateLoader.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/components/Labs2.vue?vue&type=template&id=7a6039de&");
-/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "render", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_Labs2_vue_vue_type_template_id_7a6039de___WEBPACK_IMPORTED_MODULE_0__["render"]; });
+/* harmony import */ var _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_Labs_vue_vue_type_template_id_2f925471___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! -!../../../node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!../../../node_modules/vue-loader/lib??vue-loader-options!./Labs.vue?vue&type=template&id=2f925471& */ "./node_modules/vue-loader/lib/loaders/templateLoader.js?!./node_modules/vue-loader/lib/index.js?!./resources/js/components/Labs.vue?vue&type=template&id=2f925471&");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "render", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_Labs_vue_vue_type_template_id_2f925471___WEBPACK_IMPORTED_MODULE_0__["render"]; });
 
-/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_Labs2_vue_vue_type_template_id_7a6039de___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"]; });
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "staticRenderFns", function() { return _node_modules_vue_loader_lib_loaders_templateLoader_js_vue_loader_options_node_modules_vue_loader_lib_index_js_vue_loader_options_Labs_vue_vue_type_template_id_2f925471___WEBPACK_IMPORTED_MODULE_0__["staticRenderFns"]; });
 
 
 
